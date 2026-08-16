@@ -2,47 +2,28 @@ const canvas=document.getElementById('game');
 const ctx=canvas.getContext('2d');
 const keys=new Set();
 const player={x:480,y:270,size:22,speed:3};
-let paused=false, selected=1, inventoryOpen=false, craftingOpen=false, hardcore=true;
+let paused=false,selected=1,inventoryOpen=false,craftingOpen=false,hardcore=true;
 const survival={health:20,maxHealth:20,hunger:20,maxHunger:20,thirst:20,maxThirst:20,temperature:22,alive:true};
 let survivalClock=0;
-const blocks=[
-  {name:'Grass',color:'#5aa657',item:'grass'},
-  {name:'Dirt',color:'#9b6b43',item:'dirt'},
-  {name:'Stone',color:'#777',item:'stone'},
-  {name:'Sand',color:'#d9c27a',item:'sand'}
-];
-const recipes=[
-  {name:'🪵 4 Planks',input:{stick:2},output:{plank:4}},
-  {name:'⛏️ Stone Tool',input:{stone:3,stick:2},output:{stoneTool:1}},
-  {name:'🪨 4 Stone',input:{stone:1},output:{stone:4}}
-];
+const blocks=[{name:'Grass',color:'#5aa657',item:'grass'},{name:'Dirt',color:'#9b6b43',item:'dirt'},{name:'Stone',color:'#777',item:'stone'},{name:'Sand',color:'#d9c27a',item:'sand'}];
+const recipes=[{name:'🪵 4 Planks',input:{stick:2},output:{plank:4}},{name:'⛏️ Stone Tool',input:{stone:3,stick:2},output:{stoneTool:1}},{name:'🪨 4 Stone',input:{stone:1},output:{stone:4}},{name:'🍎 2 Apples',input:{plank:1},output:{apple:2}},{name:'💧 1 Clean Water',input:{dirtyWater:2},output:{cleanWater:1}}];
 const world=[];
-const inventory={grass:20,dirt:20,stone:10,sand:10,stick:8,plank:0,stoneTool:0};
-for(let y=0;y<18;y++)for(let x=0;x<32;x++){
-  const edge=x===0||y===0||x===31||y===17;
-  world.push({x:x*30,y:y*30,type:edge?4:((x+y)%11===0?3:1)});
-}
-function gridAt(px,py){return {x:Math.floor(px/30),y:Math.floor(py/30)}}
+const inventory={grass:20,dirt:20,stone:10,sand:10,stick:8,plank:0,stoneTool:0,apple:2,dirtyWater:2,cleanWater:0};
+for(let y=0;y<18;y++)for(let x=0;x<32;x++){const edge=x===0||y===0||x===31||y===17;world.push({x:x*30,y:y*30,type:edge?4:((x+y)%11===0?3:1)});}
+function gridAt(px,py){return{x:Math.floor(px/30),y:Math.floor(py/30)}}
 function blockAt(gx,gy){return world.find(b=>b.x===gx*30&&b.y===gy*30)||null}
 function playerGrid(){return gridAt(player.x,player.y)}
 function near(gx,gy){const p=playerGrid();return Math.abs(p.x-gx)+Math.abs(p.y-gy)<=2}
 function placeBlock(){const p=playerGrid(),gx=p.x+1,gy=p.y;if(!near(gx,gy)||blockAt(gx,gy))return;const b=blocks[selected-1];if((inventory[b.item]||0)<=0)return;world.push({x:gx*30,y:gy*30,type:selected});inventory[b.item]--}
 function breakBlock(){const p=playerGrid(),gx=p.x+1,gy=p.y,b=blockAt(gx,gy);if(!b||!near(gx,gy)||gx===0||gy===0||gx===31||gy===17)return;world.splice(world.indexOf(b),1);inventory[blocks[b.type-1].item]++}
-function craft(index){const r=recipes[index];for(const [item,count] of Object.entries(r.input))if((inventory[item]||0)<count){flash('❌ Không đủ nguyên liệu');return}for(const [item,count] of Object.entries(r.input))inventory[item]-=count;for(const [item,count] of Object.entries(r.output))inventory[item]=(inventory[item]||0)+count;flash('🧪 Đã chế tạo: '+r.name)}
+function craft(index){const r=recipes[index];if(!r)return;for(const[item,count]of Object.entries(r.input))if((inventory[item]||0)<count){flash('❌ Không đủ nguyên liệu');return}for(const[item,count]of Object.entries(r.input))inventory[item]-=count;for(const[item,count]of Object.entries(r.output))inventory[item]=(inventory[item]||0)+count;flash('🧪 Đã chế tạo: '+r.name)}
+function eat(){if(inventory.apple<1){flash('❌ Hết thức ăn');return}inventory.apple--;survival.hunger=Math.min(survival.maxHunger,survival.hunger+8);flash('🍎 Đã ăn táo')}
+function drink(){if(inventory.cleanWater<1){flash('❌ Cần nước sạch');return}inventory.cleanWater--;survival.thirst=Math.min(survival.maxThirst,survival.thirst+8);flash('💧 Đã uống nước sạch')}
 function saveGame(){localStorage.setItem('sandboxGameSave',JSON.stringify({player,world,inventory,survival,hardcore}));flash('💾 Đã lưu game')}
 function loadGame(){const raw=localStorage.getItem('sandboxGameSave');if(!raw)return flash('Chưa có bản lưu');const s=JSON.parse(raw);if(!s.survival)return flash('Bản lưu cũ không có survival');player.x=s.player.x;player.y=s.player.y;world.length=0;world.push(...s.world);Object.assign(inventory,s.inventory);Object.assign(survival,s.survival);hardcore=!!s.hardcore;flash('📂 Đã tải game')}
 function survivalTick(){if(!survival.alive)return;survival.hunger=Math.max(0,survival.hunger-0.04);survival.thirst=Math.max(0,survival.thirst-0.07);survival.temperature=22+Math.sin(performance.now()/9000)*5;if(survival.hunger===0||survival.thirst===0)survival.health=Math.max(0,survival.health-0.04);if(survival.health<=0){survival.alive=false;paused=true;document.getElementById('pause').classList.remove('hidden');flash(hardcore?'💀 HARDCORE — GAME OVER':'💀 Bạn đã chết')}}
 let notice='',noticeUntil=0;function flash(t){notice=t;noticeUntil=performance.now()+1600}
-function draw(){
-  ctx.fillStyle='#79bfe8';ctx.fillRect(0,0,canvas.width,canvas.height);
-  for(const b of world){ctx.fillStyle=blocks[b.type-1].color;ctx.fillRect(b.x,b.y,30,30);ctx.strokeStyle='#0002';ctx.strokeRect(b.x,b.y,30,30)}
-  if(survival.alive){ctx.fillStyle='#3b2d20';ctx.fillRect(player.x-player.size/2,player.y-player.size/2,player.size,player.size);ctx.fillStyle='#ffd7a8';ctx.fillRect(player.x-7,player.y-15,14,10)}
-  ctx.fillStyle='#fff';ctx.font='14px system-ui';ctx.fillText(`Block: ${blocks[selected-1].name} | [Space] đặt | [X] phá | [C] Crafting`,12,525);
-  if(inventoryOpen||craftingOpen){ctx.fillStyle='#000d';ctx.fillRect(220,80,520,380);ctx.fillStyle='#fff';ctx.font='24px system-ui';ctx.fillText(inventoryOpen?'🎒 INVENTORY':'🧪 CRAFTING',390,120);ctx.font='17px system-ui';if(inventoryOpen){blocks.forEach((b,i)=>ctx.fillText(`${i+1}. ${b.name}: ${inventory[b.item]||0}`,270,165+i*40));ctx.fillText(`Stick: ${inventory.stick}   Plank: ${inventory.plank}`,270,340);ctx.fillText(`Stone Tool: ${inventory.stoneTool||0}`,270,380)}else{recipes.forEach((r,i)=>ctx.fillText(`[${i+1}] ${r.name}`,270,175+i*55));ctx.font='14px system-ui';ctx.fillText('Nhấn 1-3 để chế tạo · C để đóng',270,390)}}
-  if(performance.now()<noticeUntil){ctx.fillStyle='#000b';ctx.fillRect(330,18,300,38);ctx.fillStyle='#fff';ctx.font='16px system-ui';ctx.fillText(notice,350,43)}
-  ctx.font='15px system-ui';ctx.fillText(`❤️ ${Math.ceil(survival.health)}/${survival.maxHealth}   🍖 ${Math.ceil(survival.hunger)}/${survival.maxHunger}   💧 ${Math.ceil(survival.thirst)}/${survival.maxThirst}   🌡️ ${survival.temperature.toFixed(1)}°C   ${hardcore?'💀 HARDCORE':''}`,12,24);
-}
+function draw(){ctx.fillStyle='#79bfe8';ctx.fillRect(0,0,canvas.width,canvas.height);for(const b of world){ctx.fillStyle=blocks[b.type-1].color;ctx.fillRect(b.x,b.y,30,30);ctx.strokeStyle='#0002';ctx.strokeRect(b.x,b.y,30,30)}if(survival.alive){ctx.fillStyle='#3b2d20';ctx.fillRect(player.x-player.size/2,player.y-player.size/2,player.size,player.size);ctx.fillStyle='#ffd7a8';ctx.fillRect(player.x-7,player.y-15,14,10)}ctx.fillStyle='#fff';ctx.font='14px system-ui';ctx.fillText(`Block: ${blocks[selected-1].name} | [Space] đặt | [X] phá | [C] Crafting`,12,525);if(inventoryOpen||craftingOpen){ctx.fillStyle='#000d';ctx.fillRect(220,70,520,400);ctx.fillStyle='#fff';ctx.font='24px system-ui';ctx.fillText(inventoryOpen?'🎒 INVENTORY':'🧪 CRAFTING',390,110);ctx.font='17px system-ui';if(inventoryOpen){blocks.forEach((b,i)=>ctx.fillText(`${i+1}. ${b.name}: ${inventory[b.item]||0}`,270,150+i*35));ctx.fillText(`Stick: ${inventory.stick}   Plank: ${inventory.plank}`,270,305);ctx.fillText(`🍎 Apple: ${inventory.apple}   💧 Dirty: ${inventory.dirtyWater}   💧 Clean: ${inventory.cleanWater}`,270,340);ctx.fillText('E = ăn táo · R = uống nước sạch',270,385)}else{recipes.forEach((r,i)=>ctx.fillText(`[${i+1}] ${r.name}`,270,155+i*48));ctx.font='14px system-ui';ctx.fillText('Nhấn 1-5 để chế tạo · C để đóng',270,425)}}if(performance.now()<noticeUntil){ctx.fillStyle='#000b';ctx.fillRect(330,18,300,38);ctx.fillStyle='#fff';ctx.font='16px system-ui';ctx.fillText(notice,350,43)}ctx.font='15px system-ui';ctx.fillText(`❤️ ${Math.ceil(survival.health)}/${survival.maxHealth}   🍖 ${Math.ceil(survival.hunger)}/${survival.maxHunger}   💧 ${Math.ceil(survival.thirst)}/${survival.maxThirst}   🌡️ ${survival.temperature.toFixed(1)}°C   ${hardcore?'💀 HARDCORE':''}`,12,24)}
 function update(){if(!paused&&!inventoryOpen&&!craftingOpen){if(keys.has('w'))player.y-=player.speed;if(keys.has('s'))player.y+=player.speed;if(keys.has('a'))player.x-=player.speed;if(keys.has('d'))player.x+=player.speed;player.x=Math.max(15,Math.min(945,player.x));player.y=Math.max(15,Math.min(525,player.y));if(performance.now()-survivalClock>1000){survivalTick();survivalClock=performance.now()}}draw();requestAnimationFrame(update)}
-addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys.add(k);if(craftingOpen&&['1','2','3'].includes(e.key)){craft(Number(e.key)-1);return}if(/^1$|^2$|^3$|^4$/.test(e.key)&&!craftingOpen)selected=Number(e.key);if(k==='p'&&survival.alive){paused=!paused;document.getElementById('pause').classList.toggle('hidden',!paused)}if(k==='i'){inventoryOpen=!inventoryOpen;craftingOpen=false}if(k==='c'){craftingOpen=!craftingOpen;inventoryOpen=false}if(k==='x')breakBlock();if(e.code==='Space')placeBlock();if(k==='f5')saveGame();if(k==='f9')loadGame();if(e.code==='Space'||e.key.startsWith('Arrow'))e.preventDefault()});
-addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));
-update();
+addEventListener('keydown',e=>{const k=e.key.toLowerCase();keys.add(k);if(craftingOpen&&['1','2','3','4','5'].includes(e.key)){craft(Number(e.key)-1);return}if(/^1$|^2$|^3$|^4$/.test(e.key)&&!craftingOpen)selected=Number(e.key);if(k==='p'&&survival.alive){paused=!paused;document.getElementById('pause').classList.toggle('hidden',!paused)}if(k==='i'){inventoryOpen=!inventoryOpen;craftingOpen=false}if(k==='c'){craftingOpen=!craftingOpen;inventoryOpen=false}if(k==='x')breakBlock();if(k==='e')eat();if(k==='r')drink();if(e.code==='Space')placeBlock();if(k==='f5')saveGame();if(k==='f9')loadGame();if(e.code==='Space'||e.key.startsWith('Arrow'))e.preventDefault()});
+addEventListener('keyup',e=>keys.delete(e.key.toLowerCase()));update();
