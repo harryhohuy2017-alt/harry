@@ -69,11 +69,7 @@ function rebuildWorld() {
 }
 rebuildWorld();
 
-// Highlight the block currently targeted by the crosshair.
-const outline = new THREE.LineSegments(
-  new THREE.EdgesGeometry(geometryFor()),
-  new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95 })
-);
+const outline = new THREE.LineSegments(new THREE.EdgesGeometry(geometryFor()), new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95 }));
 outline.scale.setScalar(1.04);
 outline.visible = false;
 scene.add(outline);
@@ -88,51 +84,36 @@ function updateTarget() {
   if (target) {
     outline.position.copy(target.object.position);
     outline.visible = true;
-  } else {
-    outline.visible = false;
-  }
+  } else outline.visible = false;
 }
-
 function faceNormalFromHit(hit) {
   if (!hit.face) return new THREE.Vector3(0, 1, 0);
   return hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize();
 }
-
 function breakTarget() {
   if (!target) return;
   const p = target.object.position;
-  // Keep the ground under the player intact.
   if (p.y <= -1) return;
   removeBlock(Math.round(p.x), Math.round(p.y), Math.round(p.z));
   rebuildWorld();
   updateTarget();
 }
-
 function placeBlock() {
   if (!target) return;
   const p = target.object.position;
   const n = faceNormalFromHit(target);
-  const x = Math.round(p.x + n.x);
-  const y = Math.round(p.y + n.y);
-  const z = Math.round(p.z + n.z);
+  const x = Math.round(p.x + n.x), y = Math.round(p.y + n.y), z = Math.round(p.z + n.z);
   const newBox = new THREE.Box3(new THREE.Vector3(x - 0.5, y - 0.5, z - 0.5), new THREE.Vector3(x + 0.5, y + 0.5, z + 0.5));
-  const playerBox = new THREE.Box3(
-    new THREE.Vector3(camera.position.x - 0.3, camera.position.y - 1.65, camera.position.z - 0.3),
-    new THREE.Vector3(camera.position.x + 0.3, camera.position.y + 0.15, camera.position.z + 0.3)
-  );
+  const playerBox = new THREE.Box3(new THREE.Vector3(camera.position.x - 0.3, camera.position.y - 1.65, camera.position.z - 0.3), new THREE.Vector3(camera.position.x + 0.3, camera.position.y + 0.15, camera.position.z + 0.3));
   if (newBox.intersectsBox(playerBox) || world.has(key(x, y, z))) return;
   setBlock(x, y, z, selectedBlock);
   rebuildWorld();
   updateTarget();
 }
-
-canvas.addEventListener('mousedown', e => {
-  if (e.button === 0) breakTarget();
-  if (e.button === 2) placeBlock();
-});
+canvas.addEventListener('mousedown', e => { if (e.button === 0) breakTarget(); if (e.button === 2) placeBlock(); });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-const player = { height: 1.7, speed: 4.5, sprint: 7.5 };
+const player = { height: 1.7, speed: 4.5, sneakSpeed: 2.2, normalEye: 1.7, sneakEye: 1.35 };
 const keys = new Set();
 addEventListener('keydown', e => keys.add(e.code));
 addEventListener('keyup', e => keys.delete(e.code));
@@ -152,6 +133,7 @@ function updatePlayer(dt) {
   camera.rotation.y = yaw;
   camera.rotation.x = pitch;
 
+  const sneaking = keys.has('ShiftLeft') || keys.has('ShiftRight');
   const forward = new THREE.Vector3(0, 0, -1).applyEuler(new THREE.Euler(0, yaw, 0));
   const right = new THREE.Vector3(1, 0, 0).applyEuler(new THREE.Euler(0, yaw, 0));
   const direction = new THREE.Vector3();
@@ -160,21 +142,17 @@ function updatePlayer(dt) {
   if (keys.has('ArrowRight')) direction.add(right);
   if (keys.has('ArrowLeft')) direction.sub(right);
   if (direction.lengthSq()) direction.normalize();
-  const speed = keys.has('ShiftLeft') || keys.has('ShiftRight') ? player.sprint : player.speed;
 
-  const old = camera.position.clone();
+  const speed = sneaking ? player.sneakSpeed : player.speed;
   camera.position.addScaledVector(direction, speed * dt);
-  // Keep the player above the terrain instead of falling through it.
+
   let highest = -Infinity;
-  const px = Math.round(camera.position.x);
-  const pz = Math.round(camera.position.z);
+  const px = Math.round(camera.position.x), pz = Math.round(camera.position.z);
   for (const block of world.values()) {
     if (block.x === px && block.z === pz && block.y > highest) highest = block.y;
   }
-  if (highest > -Infinity) camera.position.y = highest + player.height + 0.5;
-  else camera.position.y = player.height + 0.5;
-
-  if (!Number.isFinite(camera.position.y)) camera.position.copy(old);
+  const eye = sneaking ? player.sneakEye : player.normalEye;
+  camera.position.y = highest > -Infinity ? highest + eye + 0.5 : eye + 0.5;
 }
 
 function animate() {
