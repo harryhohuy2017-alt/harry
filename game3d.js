@@ -11,7 +11,7 @@ scene.background = new THREE.Color(0x87ceeb);
 scene.fog = new THREE.Fog(0x87ceeb, 18, 70);
 
 const camera = new THREE.PerspectiveCamera(75, innerWidth / innerHeight, 0.05, 150);
-camera.position.set(0, 3, 7);
+camera.position.set(0, 2.7, 7);
 
 scene.add(new THREE.HemisphereLight(0xffffff, 0x6b7d52, 2.2));
 const sun = new THREE.DirectionalLight(0xffffff, 2.5);
@@ -27,6 +27,7 @@ const blocks = {
   wood: { color: 0x8f633d },
   leaves: { color: 0x2f7d32, transparent: true },
 };
+const selectedBlock = 'grass';
 const geometries = new Map();
 const materials = new Map();
 function materialFor(type) {
@@ -41,6 +42,7 @@ function geometryFor() {
 const world = new Map();
 const key = (x, y, z) => `${x},${y},${z}`;
 function setBlock(x, y, z, type) { world.set(key(x, y, z), { x, y, z, type }); }
+function removeBlock(x, y, z) { world.delete(key(x, y, z)); }
 function makeTerrain() {
   for (let x = -14; x <= 14; x++) {
     for (let z = -14; z <= 14; z++) {
@@ -67,7 +69,70 @@ function rebuildWorld() {
 }
 rebuildWorld();
 
-const player = { velocity: new THREE.Vector3(), height: 1.7, speed: 4.5, sprint: 7.5 };
+// Highlight the block currently targeted by the crosshair.
+const outline = new THREE.LineSegments(
+  new THREE.EdgesGeometry(geometryFor()),
+  new THREE.LineBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.95 })
+);
+outline.scale.setScalar(1.04);
+outline.visible = false;
+scene.add(outline);
+
+const raycaster = new THREE.Raycaster();
+const center = new THREE.Vector2(0, 0);
+let target = null;
+function updateTarget() {
+  raycaster.setFromCamera(center, camera);
+  const hits = raycaster.intersectObjects([...meshes.values()], false);
+  target = hits[0] || null;
+  if (target) {
+    outline.position.copy(target.object.position);
+    outline.visible = true;
+  } else {
+    outline.visible = false;
+  }
+}
+
+function faceNormalFromHit(hit) {
+  if (!hit.face) return new THREE.Vector3(0, 1, 0);
+  return hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize();
+}
+
+function breakTarget() {
+  if (!target) return;
+  const p = target.object.position;
+  // Keep the ground under the player intact.
+  if (p.y <= -1) return;
+  removeBlock(Math.round(p.x), Math.round(p.y), Math.round(p.z));
+  rebuildWorld();
+  updateTarget();
+}
+
+function placeBlock() {
+  if (!target) return;
+  const p = target.object.position;
+  const n = faceNormalFromHit(target);
+  const x = Math.round(p.x + n.x);
+  const y = Math.round(p.y + n.y);
+  const z = Math.round(p.z + n.z);
+  const newBox = new THREE.Box3(new THREE.Vector3(x - 0.5, y - 0.5, z - 0.5), new THREE.Vector3(x + 0.5, y + 0.5, z + 0.5));
+  const playerBox = new THREE.Box3(
+    new THREE.Vector3(camera.position.x - 0.3, camera.position.y - 1.65, camera.position.z - 0.3),
+    new THREE.Vector3(camera.position.x + 0.3, camera.position.y + 0.15, camera.position.z + 0.3)
+  );
+  if (newBox.intersectsBox(playerBox) || world.has(key(x, y, z))) return;
+  setBlock(x, y, z, selectedBlock);
+  rebuildWorld();
+  updateTarget();
+}
+
+canvas.addEventListener('mousedown', e => {
+  if (e.button === 0) breakTarget();
+  if (e.button === 2) placeBlock();
+});
+canvas.addEventListener('contextmenu', e => e.preventDefault());
+
+const player = { height: 1.7, speed: 4.5, sprint: 7.5 };
 const keys = new Set();
 addEventListener('keydown', e => keys.add(e.code));
 addEventListener('keyup', e => keys.delete(e.code));
@@ -96,14 +161,27 @@ function updatePlayer(dt) {
   if (keys.has('ArrowLeft')) direction.sub(right);
   if (direction.lengthSq()) direction.normalize();
   const speed = keys.has('ShiftLeft') || keys.has('ShiftRight') ? player.sprint : player.speed;
+
+  const old = camera.position.clone();
   camera.position.addScaledVector(direction, speed * dt);
-  camera.position.y = player.height + 1;
+  // Keep the player above the terrain instead of falling through it.
+  let highest = -Infinity;
+  const px = Math.round(camera.position.x);
+  const pz = Math.round(camera.position.z);
+  for (const block of world.values()) {
+    if (block.x === px && block.z === pz && block.y > highest) highest = block.y;
+  }
+  if (highest > -Infinity) camera.position.y = highest + player.height + 0.5;
+  else camera.position.y = player.height + 0.5;
+
+  if (!Number.isFinite(camera.position.y)) camera.position.copy(old);
 }
 
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
   updatePlayer(dt);
+  updateTarget();
   renderer.render(scene, camera);
 }
 animate();
