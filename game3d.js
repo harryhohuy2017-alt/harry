@@ -113,8 +113,11 @@ function placeBlock() {
 canvas.addEventListener('mousedown', e => { if (e.button === 0) breakTarget(); if (e.button === 2) placeBlock(); });
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
-const player = { height: 1.7, speed: 4.5, sneakSpeed: 2.2, normalEye: 1.7, sneakEye: 1.35 };
+const player = { speed: 4.5, sneakSpeed: 2.2, normalEye: 1.7, sneakEye: 1.35, jumpSpeed: 7.2, gravity: 20 };
 const keys = new Set();
+let verticalVelocity = 0;
+let grounded = false;
+let jumpWasDown = false;
 addEventListener('keydown', e => keys.add(e.code));
 addEventListener('keyup', e => keys.delete(e.code));
 
@@ -126,6 +129,15 @@ document.addEventListener('mousemove', e => {
   pitch -= e.movementY * 0.0022;
   pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, pitch));
 });
+
+function highestBlockBelow(x, z) {
+  const px = Math.round(x), pz = Math.round(z);
+  let highest = -Infinity;
+  for (const block of world.values()) {
+    if (block.x === px && block.z === pz && block.y > highest) highest = block.y;
+  }
+  return highest;
+}
 
 const clock = new THREE.Clock();
 function updatePlayer(dt) {
@@ -146,13 +158,35 @@ function updatePlayer(dt) {
   const speed = sneaking ? player.sneakSpeed : player.speed;
   camera.position.addScaledVector(direction, speed * dt);
 
-  let highest = -Infinity;
-  const px = Math.round(camera.position.x), pz = Math.round(camera.position.z);
-  for (const block of world.values()) {
-    if (block.x === px && block.z === pz && block.y > highest) highest = block.y;
+  const highest = highestBlockBelow(camera.position.x, camera.position.z);
+  const normalFloorY = highest > -Infinity ? highest + 0.5 + player.normalEye : player.normalEye + 0.5;
+  const sneakFloorY = highest > -Infinity ? highest + 0.5 + player.sneakEye : player.sneakEye + 0.5;
+  const floorY = sneaking ? sneakFloorY : normalFloorY;
+
+  if (camera.position.y <= floorY + 0.06 && verticalVelocity <= 0) {
+    camera.position.y = floorY;
+    verticalVelocity = 0;
+    grounded = true;
+  } else {
+    grounded = false;
   }
-  const eye = sneaking ? player.sneakEye : player.normalEye;
-  camera.position.y = highest > -Infinity ? highest + eye + 0.5 : eye + 0.5;
+
+  const jumpDown = keys.has('Space');
+  if (jumpDown && !jumpWasDown && grounded && !sneaking) {
+    verticalVelocity = player.jumpSpeed;
+    grounded = false;
+  }
+  jumpWasDown = jumpDown;
+
+  if (!grounded) {
+    verticalVelocity -= player.gravity * dt;
+    camera.position.y += verticalVelocity * dt;
+    if (camera.position.y < floorY) {
+      camera.position.y = floorY;
+      verticalVelocity = 0;
+      grounded = true;
+    }
+  }
 }
 
 function animate() {
