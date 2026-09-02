@@ -7,6 +7,7 @@ import {
   HOTBAR_GAP,
   HOTBAR_SLOT_SIZE,
   INVENTORY_HOTBAR_GAP,
+  buildHotbarStyle,
 } from './hotbar9.mjs';
 
 test('hotbar exposes exactly 9 numbered slots', () => {
@@ -20,7 +21,12 @@ test('hotbar exposes exactly 9 numbered slots', () => {
 });
 
 test('Bedrock-style inventory and hotbar are visually continuous', () => {
+  const style = buildHotbarStyle();
   assert.equal(HOTBAR_GAP, 0);
   assert.equal(INVENTORY_HOTBAR_GAP, 0);
   assert.equal(HOTBAR_SLOT_SIZE, 50);
+  assert.equal(style.gap, '0');
+  assert.equal(style.borderRadius, '0');
+  assert.equal(style.display, 'grid');
+  assert.equal(style.gridTemplateColumns, 'repeat(9, 50px)');
 });
