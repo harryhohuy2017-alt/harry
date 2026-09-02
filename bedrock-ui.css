@@ -1,0 +1,65 @@
+/* Bedrock-like continuous inventory + hotbar layout */
+#hotbar {
+  gap: 0 !important;
+  padding: 4px !important;
+  border: 2px solid #666 !important;
+  border-radius: 4px !important;
+  background: #111e !important;
+}
+
+#hotbar button {
+  flex: 0 0 50px !important;
+  width: 50px !important;
+  height: 50px !important;
+  border: 1px solid #777 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
+
+#hotbar button + button {
+  border-left-width: 0 !important;
+}
+
+#inventory {
+  top: auto !important;
+  bottom: 74px !important;
+  transform: translateX(-50%) !important;
+  gap: 0 !important;
+  padding: 8px !important;
+  border: 2px solid #666 !important;
+  border-bottom: 0 !important;
+  border-radius: 4px 4px 0 0 !important;
+  background: #111e !important;
+}
+
+#inventory button {
+  width: 50px !important;
+  height: 50px !important;
+  border: 1px solid #777 !important;
+  border-radius: 0 !important;
+  margin: 0 !important;
+}
+
+#inventory button + button {
+  border-left-width: 0 !important;
+}
+
+#inventory > div:first-child {
+  margin-bottom: 4px !important;
+}
+
+/* Keep the inventory panel visually attached to the hotbar while E is open. */
+#inventory::after {
+  content: '';
+  position: absolute;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  height: 2px;
+  background: #111e;
+}
+
+@media (max-width: 520px) {
+  #hotbar button { flex-basis: 40px !important; width: 40px !important; height: 40px !important; }
+  #inventory button { width: 40px !important; height: 40px !important; }
+}
