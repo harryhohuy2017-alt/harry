@@ -10,6 +10,10 @@ export function handleChatCommand(input) {
   return text;
 }
 
+export function shouldKeepKeyInChatInput(code) {
+  return code !== 'Escape';
+}
+
 function initChat() {
   if (document.querySelector('#chat-ui')) return;
   const panel = document.createElement('div');
@@ -40,6 +44,14 @@ function initChat() {
       addMessage(text);
     }
     input.value='';
+  });
+  input.addEventListener('keydown', event => {
+    if (event.code === 'Escape') {
+      event.preventDefault();
+      setOpen(false);
+      return;
+    }
+    if (shouldKeepKeyInChatInput(event.code)) event.stopPropagation();
   });
   addEventListener('keydown', event => {
     if (event.code === 'KeyT' && !event.repeat && document.activeElement !== input) { event.preventDefault(); setOpen(true); return; }
