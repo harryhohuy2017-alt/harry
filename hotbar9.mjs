@@ -10,3 +10,12 @@ export function normalizeHotbarIndex(number) {
 export function slotLabel(index) {
   return String(index + 1);
 }
+
+export function buildHotbarStyle() {
+  return {
+    gap: String(HOTBAR_GAP),
+    borderRadius: '0',
+    display: 'grid',
+    gridTemplateColumns: `repeat(${HOTBAR_SIZE}, ${HOTBAR_SLOT_SIZE}px)`,
+  };
+}
