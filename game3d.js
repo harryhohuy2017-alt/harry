@@ -1,5 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
-import { normalizeHotbarIndex, slotLabel } from './hotbar9.mjs';
+import { normalizeHotbarIndex, slotLabel, BEDROCK_PANEL_BACKGROUND, BEDROCK_SLOT_BACKGROUND, BEDROCK_PANEL_BORDER, BEDROCK_SELECTED_BORDER } from './hotbar9.mjs';
 
 const canvas = document.querySelector('#game3d');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -34,19 +34,45 @@ let selectedBlock='grass';
 const hotbarItems=['grass','dirt','stone','sand','wood','leaves','grass','dirt','stone'];
 const inventoryItems=['wood','leaves','grass','dirt','stone','sand','wood','leaves','grass','dirt','stone'];
 let inventoryOpen=false;
+
+function applyBedrockPanelStyle(element){
+  element.style.cssText='position:fixed;left:50%;transform:translateX(-50%);display:grid;gap:0;padding:5px;background:'+BEDROCK_PANEL_BACKGROUND+';border:3px solid '+BEDROCK_PANEL_BORDER+';box-shadow:inset 0 0 0 2px #151515,0 4px 18px #0009;z-index:20;user-select:none;pointer-events:auto;font-family:Arial,sans-serif;box-sizing:border-box';
+}
+function styleBedrockSlot(slot){
+  slot.style.cssText='position:relative;width:50px;height:50px;padding:0;border:2px solid #555;border-top-color:#999;border-left-color:#999;border-radius:0;background:'+BEDROCK_SLOT_BACKGROUND+';cursor:pointer;box-sizing:border-box;color:#fff;box-shadow:inset 0 0 0 1px #111';
+}
+function styleBedrockIcon(icon,type){
+  icon.style.cssText='display:block;width:31px;height:31px;margin:8px auto 0;border:2px solid #111;box-sizing:border-box;image-rendering:pixelated;box-shadow:inset 2px 2px 0 #ffffff22,inset -2px -2px 0 #0005';
+  icon.style.background=`#${blocks[type].color.toString(16).padStart(6,'0')}`;
+}
+
 const hotbar=document.createElement('div');
 hotbar.id='hotbar';
-hotbar.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:4px;padding:6px 7px;background:#111b;border:2px solid #555;border-radius:6px;box-shadow:0 4px 18px #0008;z-index:20;user-select:none;pointer-events:auto;font-family:Arial,sans-serif';
-for(let i=0;i<9;i++){const slot=document.createElement('button');slot.type='button';slot.dataset.index=String(i);slot.style.cssText='position:relative;flex:0 0 50px;width:50px;height:50px;padding:0;border:2px solid #777;border-radius:3px;background:#222d;cursor:pointer;box-sizing:border-box;color:#fff';const icon=document.createElement('span');icon.style.cssText='display:block;width:27px;height:27px;margin:8px auto 0;border:1px solid #111';const type=hotbarItems[i];icon.style.background=`#${blocks[type].color.toString(16).padStart(6,'0')}`;const label=document.createElement('span');label.textContent=slotLabel(i);label.style.cssText='position:absolute;left:3px;top:2px;font:700 11px Arial,sans-serif;text-shadow:1px 1px 2px #000';slot.append(icon,label);slot.addEventListener('click',()=>selectHotbarSlot(i));hotbar.appendChild(slot)}
+applyBedrockPanelStyle(hotbar);
+hotbar.style.bottom='14px';
+hotbar.style.width='470px';
+hotbar.style.gridTemplateColumns='repeat(9,50px)';
+for(let i=0;i<9;i++){
+  const slot=document.createElement('button');slot.type='button';slot.dataset.index=String(i);styleBedrockSlot(slot);
+  const icon=document.createElement('span');styleBedrockIcon(icon,hotbarItems[i]);
+  const label=document.createElement('span');label.textContent=slotLabel(i);label.style.cssText='position:absolute;left:3px;top:2px;font:700 11px Arial,sans-serif;text-shadow:1px 1px 2px #000';
+  slot.append(icon,label);slot.addEventListener('click',()=>selectHotbarSlot(i));hotbar.appendChild(slot)
+}
 document.body.appendChild(hotbar);
+
 const inventory=document.createElement('div');
 inventory.id='inventory';
-inventory.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;grid-template-columns:repeat(6,50px);gap:5px;padding:12px;background:#111e;border:3px solid #666;border-radius:7px;box-shadow:0 8px 30px #000b;z-index:30;user-select:none;font-family:Arial,sans-serif';
-const inventoryTitle=document.createElement('div');inventoryTitle.textContent='KHO ĐỒ · Ô 10–20';inventoryTitle.style.cssText='grid-column:1/-1;color:#fff;font-weight:700;text-align:center;margin-bottom:3px';inventory.appendChild(inventoryTitle);
-for(let i=0;i<11;i++){const slot=document.createElement('button');slot.type='button';slot.dataset.index=String(i);slot.style.cssText='position:relative;width:50px;height:50px;padding:0;border:2px solid #777;border-radius:3px;background:#222d;cursor:pointer;box-sizing:border-box;color:#fff';const icon=document.createElement('span');icon.style.cssText='display:block;width:27px;height:27px;margin:8px auto 0;border:1px solid #111';const type=inventoryItems[i];icon.style.background=`#${blocks[type].color.toString(16).padStart(6,'0')}`;const label=document.createElement('span');label.textContent=String(i+10);label.style.cssText='position:absolute;left:3px;top:2px;font:700 11px Arial,sans-serif;text-shadow:1px 1px 2px #000';slot.append(icon,label);slot.addEventListener('click',()=>selectInventorySlot(i));inventory.appendChild(slot)}
+inventory.style.cssText='position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);display:none;grid-template-columns:repeat(9,50px);grid-template-rows:repeat(2,50px);gap:0;padding:7px;background:'+BEDROCK_PANEL_BACKGROUND+';border:3px solid '+BEDROCK_PANEL_BORDER+';box-shadow:inset 0 0 0 2px #151515,0 8px 30px #000b;z-index:30;user-select:none;font-family:Arial,sans-serif;box-sizing:border-box';
+for(let i=0;i<11;i++){
+  const slot=document.createElement('button');slot.type='button';slot.dataset.index=String(i);styleBedrockSlot(slot);
+  const icon=document.createElement('span');styleBedrockIcon(icon,inventoryItems[i]);
+  const label=document.createElement('span');label.textContent=String(i+10);label.style.cssText='position:absolute;left:3px;top:2px;font:700 11px Arial,sans-serif;text-shadow:1px 1px 2px #000';
+  slot.append(icon,label);slot.addEventListener('click',()=>selectInventorySlot(i));inventory.appendChild(slot)
+}
 document.body.appendChild(inventory);
-function selectHotbarSlot(index){const i=normalizeHotbarIndex(index+1);selectedBlock=hotbarItems[i];for(const slot of hotbar.children){const active=Number(slot.dataset.index)===i;slot.style.border=active?'2px solid #fff':'2px solid #777';slot.style.boxShadow=active?'0 0 0 2px #000,0 0 10px #fff8':'none'}}
-function selectInventorySlot(index){selectedBlock=inventoryItems[Math.max(0,Math.min(inventoryItems.length-1,index))];for(const slot of inventory.children){if(!slot.dataset.index)continue;const active=Number(slot.dataset.index)===index;slot.style.border=active?'2px solid #fff':'2px solid #777';slot.style.boxShadow=active?'0 0 0 2px #000,0 0 10px #fff8':'none'}}
+
+function selectHotbarSlot(index){const i=normalizeHotbarIndex(index+1);selectedBlock=hotbarItems[i];for(const slot of hotbar.children){const active=Number(slot.dataset.index)===i;slot.style.border=active?'2px solid '+BEDROCK_SELECTED_BORDER:'2px solid #555';slot.style.boxShadow=active?'inset 0 0 0 1px #fff,0 0 0 2px #111,0 0 8px #fff8':'inset 0 0 0 1px #111'}}
+function selectInventorySlot(index){selectedBlock=inventoryItems[Math.max(0,Math.min(inventoryItems.length-1,index))];for(const slot of inventory.children){const active=Number(slot.dataset.index)===index;slot.style.border=active?'2px solid '+BEDROCK_SELECTED_BORDER:'2px solid #555';slot.style.boxShadow=active?'inset 0 0 0 1px #fff,0 0 0 2px #111,0 0 8px #fff8':'inset 0 0 0 1px #111'}}
 function toggleInventory(){inventoryOpen=!inventoryOpen;inventory.style.display=inventoryOpen?'grid':'none'}
 selectHotbarSlot(0);
 function placeBlock(){if(!target||actionAnim)return;const p=target.object.position,n=faceNormalFromHit(target);const x=Math.round(p.x+n.x),y=Math.round(p.y+n.y),z=Math.round(p.z+n.z);const box=new THREE.Box3(new THREE.Vector3(x-.5,y-.5,z-.5),new THREE.Vector3(x+.5,y+.5,z+.5));const playerBox=new THREE.Box3(new THREE.Vector3(camera.position.x-.3,camera.position.y-1.65,camera.position.z-.3),new THREE.Vector3(camera.position.x+.3,camera.position.y+.15,camera.position.z+.3));if(box.intersectsBox(playerBox)||world.has(key(x,y,z)))return;setBlock(x,y,z,selectedBlock);rebuildWorld();const m=meshes.get(key(x,y,z));if(m){m.scale.set(.15,.15,.15);startAction('place',m,m.position)}updateTarget()}
