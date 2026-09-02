@@ -12,24 +12,10 @@
     #crosshair:before{width:2px;height:16px;left:7px;top:0}#crosshair:after{width:16px;height:2px;left:0;top:7px}
     #info{position:fixed;left:12px;top:12px;color:#fff;background:#0008;padding:8px 10px;border-radius:6px;line-height:1.45;user-select:none}
     #statusHud{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);display:flex;align-items:center;gap:28px;padding:4px 8px;z-index:19;pointer-events:none;user-select:none;font:700 20px Arial,sans-serif;text-shadow:2px 2px 2px #000}
-    .statusRow{display:flex;gap:2px;white-space:nowrap}
-    .heart{font-size:22px}.food{font-size:19px}
-
-    /* Bedrock-like continuous inventory + 9-slot hotbar */
-    #inventory{
-      left:50%!important;top:auto!important;bottom:68px!important;transform:translateX(-50%)!important;
-      width:470px!important;box-sizing:border-box!important;
-      grid-template-columns:repeat(9,50px)!important;grid-template-rows:repeat(3,50px)!important;grid-auto-flow:row!important;gap:0!important;
-      padding:7px!important;border:3px solid #555!important;border-radius:0!important;
-      background:#111e!important;box-shadow:0 8px 30px #000b!important;
-    }
-    #hotbar{
-      left:50%!important;bottom:14px!important;transform:translateX(-50%)!important;
-      width:470px!important;box-sizing:border-box!important;
-      display:grid!important;grid-template-columns:repeat(9,50px)!important;gap:0!important;
-      padding:5px!important;border:3px solid #555!important;border-radius:0!important;
-      background:#111e!important;box-shadow:0 8px 30px #000b!important;
-    }
+    .statusRow{display:flex;gap:2px;white-space:nowrap}.heart{font-size:22px}.food{font-size:19px}
+    /* Inventory: only the 11 real item slots; no artificial empty slots. */
+    #inventory{left:50%!important;top:auto!important;bottom:68px!important;transform:translateX(-50%)!important;width:470px!important;box-sizing:border-box!important;grid-template-columns:repeat(9,50px)!important;grid-template-rows:repeat(2,50px)!important;grid-auto-flow:row!important;gap:0!important;padding:7px!important;border:3px solid #555!important;border-radius:0!important;background:#111e!important;box-shadow:0 8px 30px #000b!important}
+    #hotbar{left:50%!important;bottom:14px!important;transform:translateX(-50%)!important;width:470px!important;box-sizing:border-box!important;display:grid!important;grid-template-columns:repeat(9,50px)!important;gap:0!important;padding:5px!important;border:3px solid #555!important;border-radius:0!important;background:#111e!important;box-shadow:0 8px 30px #000b!important}
     #hotbar button,#inventory button{border-radius:0!important;margin:0!important}
     @media(max-width:700px){#statusHud{gap:12px;bottom:78px}.heart{font-size:18px}.food{font-size:16px}#inventory,#hotbar{width:min(470px,96vw)!important;grid-template-columns:repeat(9,1fr)!important}#inventory button,#hotbar button{width:auto!important}#inventory{bottom:68px!important}}
   </style>
@@ -38,34 +24,7 @@
   <canvas id="game3d"></canvas>
   <div id="crosshair"></div>
   <div id="info">3D Prototype · Nhấn P để thoát/tạm dừng<br>Click vào màn hình để điều khiển camera<br>⬆️⬇️⬅️➡️ di chuyển · Shift cúi · Space nhảy</div>
-  <div id="statusHud" aria-label="Health and hunger">
-    <div id="healthHud" class="statusRow heart">♥♥♥♥♥♥♥♥♥♥</div>
-    <div id="hungerHud" class="statusRow food">🍗🍗🍗🍗🍗🍗🍗🍗🍗🍗</div>
-  </div>
+  <div id="statusHud" aria-label="Health and hunger"><div id="healthHud" class="statusRow heart">♥♥♥♥♥♥♥♥♥♥</div><div id="hungerHud" class="statusRow food">🍗🍗🍗🍗🍗🍗🍗🍗🍗🍗</div></div>
   <script type="module" src="game3d.js"></script>
-  <script type="module">
-    // Complete the upper inventory into a real 9×3 Bedrock-style grid.
-    // The first 11 slots contain the current items (10–20); the rest stay empty.
-    const inventory = document.querySelector('#inventory');
-    if (inventory) {
-      const title = inventory.querySelector('div');
-      if (title) title.remove();
-      inventory.style.display = inventory.style.display || 'grid';
-      inventory.style.gridTemplateColumns = 'repeat(9, 50px)';
-      inventory.style.gridTemplateRows = 'repeat(3, 50px)';
-      inventory.style.gap = '0';
-      inventory.style.width = '470px';
-
-      const existing = inventory.querySelectorAll('button').length;
-      for (let i = existing; i < 27; i++) {
-        const slot = document.createElement('button');
-        slot.type = 'button';
-        slot.dataset.index = String(i);
-        slot.setAttribute('aria-label', `Ô trống ${i + 10}`);
-        slot.style.cssText = 'position:relative;width:50px;height:50px;padding:0;border:2px solid #777;border-radius:0;background:#222d;box-sizing:border-box;color:#fff;cursor:pointer';
-        inventory.appendChild(slot);
-      }
-    }
-  </script>
 </body>
 </html>
