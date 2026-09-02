@@ -9,14 +9,22 @@
     #game3d{display:block;width:100%;height:100%}
     #crosshair{position:fixed;left:50%;top:50%;width:16px;height:16px;transform:translate(-50%,-50%);pointer-events:none}
     #crosshair:before,#crosshair:after{content:"";position:absolute;background:#fff;box-shadow:0 0 2px #000}
-    #crosshair:before{width:2px;height:16px;left:7px;top:0}.#crosshair:after{width:16px;height:2px;left:0;top:7px}
+    #crosshair:before{width:2px;height:16px;left:7px;top:0}#crosshair:after{width:16px;height:2px;left:0;top:7px}
     #info{position:fixed;left:12px;top:12px;color:#fff;background:#0008;padding:8px 10px;border-radius:6px;line-height:1.45;user-select:none}
+    #statusHud{position:fixed;left:50%;bottom:82px;transform:translateX(-50%);display:flex;align-items:center;gap:28px;padding:4px 8px;z-index:19;pointer-events:none;user-select:none;font:700 20px Arial,sans-serif;text-shadow:2px 2px 2px #000}
+    .statusRow{display:flex;gap:2px;white-space:nowrap}
+    .heart{font-size:22px}.food{font-size:19px}
+    @media(max-width:700px){#statusHud{gap:12px;bottom:78px}.heart{font-size:18px}.food{font-size:16px}}
   </style>
 </head>
 <body>
   <canvas id="game3d"></canvas>
   <div id="crosshair"></div>
-  <div id="info">3D Prototype · Nhấn P để thoát/tạm dừng<br>Click vào màn hình để điều khiển camera<br>⬆️⬇️⬅️➡️ di chuyển · Shift chạy</div>
+  <div id="info">3D Prototype · Nhấn P để thoát/tạm dừng<br>Click vào màn hình để điều khiển camera<br>⬆️⬇️⬅️➡️ di chuyển · Shift cúi · Space nhảy</div>
+  <div id="statusHud" aria-label="Health and hunger">
+    <div id="healthHud" class="statusRow heart">♥♥♥♥♥♥♥♥♥♥</div>
+    <div id="hungerHud" class="statusRow food">🍗🍗🍗🍗🍗🍗🍗🍗🍗🍗</div>
+  </div>
   <script type="module" src="game3d.js"></script>
 </body>
 </html>
