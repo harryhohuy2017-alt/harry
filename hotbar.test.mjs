@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { normalizeHotbarIndex, slotLabel, HOTBAR_SIZE } from './hotbar.mjs';
+import { normalizeHotbarIndex, slotLabel, HOTBAR_SIZE } from './hotbar9.mjs';
 
 test('hotbar exposes exactly 9 numbered slots', () => {
   assert.equal(HOTBAR_SIZE, 9);
