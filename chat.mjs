@@ -29,7 +29,18 @@ function initChat() {
   let open = false;
   function addMessage(text) { const line=document.createElement('div'); line.textContent=text; log.appendChild(line); log.scrollTop=log.scrollHeight; }
   function setOpen(value) { open=value; panel.style.display=open?'block':'none'; if(open) input.focus(); }
-  form.addEventListener('submit', event => { event.preventDefault(); const text=input.value.trim(); if(!text)return; addMessage(`> ${text}`); const result=handleChatCommand(text); if(result&&result!==text)addMessage(result); input.value=''; });
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    const text=input.value.trim();
+    if(!text)return;
+    const result=handleChatCommand(text);
+    if (text.startsWith('/')) {
+      if (result) addMessage(result);
+    } else {
+      addMessage(text);
+    }
+    input.value='';
+  });
   addEventListener('keydown', event => {
     if (event.code === 'KeyT' && !event.repeat && document.activeElement !== input) { event.preventDefault(); setOpen(true); return; }
     if (event.code === 'Escape' && open) { event.preventDefault(); setOpen(false); }
