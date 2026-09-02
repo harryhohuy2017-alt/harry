@@ -110,7 +110,11 @@ function placeBlock() {
   rebuildWorld();
   updateTarget();
 }
-canvas.addEventListener('mousedown', e => { if (e.button === 0) breakTarget(); if (e.button === 2) placeBlock(); });
+canvas.addEventListener('mousedown', e => {
+  if (paused) return;
+  if (e.button === 0) breakTarget();
+  if (e.button === 2) placeBlock();
+});
 canvas.addEventListener('contextmenu', e => e.preventDefault());
 
 const player = { speed: 4.5, sneakSpeed: 2.2, normalEye: 1.7, sneakEye: 1.35, jumpSpeed: 7.2, gravity: 20 };
@@ -118,13 +122,35 @@ const keys = new Set();
 let verticalVelocity = 0;
 let grounded = false;
 let jumpWasDown = false;
-addEventListener('keydown', e => keys.add(e.code));
+let paused = false;
+let currentEye = player.normalEye;
+let bobTime = 0;
+
+addEventListener('keydown', e => {
+  keys.add(e.code);
+  if (e.code === 'KeyP' && !e.repeat) togglePause();
+});
 addEventListener('keyup', e => keys.delete(e.code));
 
+const pauseOverlay = document.createElement('div');
+pauseOverlay.textContent = 'TẠM DỪNG — Nhấn P để tiếp tục';
+pauseOverlay.style.cssText = 'position:fixed;left:50%;top:18%;transform:translateX(-50%);padding:10px 16px;border-radius:8px;background:#000a;color:#fff;font:700 18px Arial,sans-serif;display:none;pointer-events:none;z-index:10';
+document.body.appendChild(pauseOverlay);
+function togglePause() {
+  paused = !paused;
+  pauseOverlay.style.display = paused ? 'block' : 'none';
+  if (!paused) {
+    jumpWasDown = keys.has('Space');
+    clock.getDelta();
+  }
+}
+
 let yaw = 0, pitch = 0;
-canvas.addEventListener('click', () => canvas.requestPointerLock?.());
+canvas.addEventListener('click', () => {
+  if (!paused) canvas.requestPointerLock?.();
+});
 document.addEventListener('mousemove', e => {
-  if (document.pointerLockElement !== canvas) return;
+  if (paused || document.pointerLockElement !== canvas) return;
   yaw -= e.movementX * 0.0022;
   pitch -= e.movementY * 0.0022;
   pitch = Math.max(-Math.PI / 2 + 0.05, Math.min(Math.PI / 2 - 0.05, pitch));
@@ -155,6 +181,7 @@ function updatePlayer(dt) {
   if (keys.has('ArrowLeft')) direction.sub(right);
   if (direction.lengthSq()) direction.normalize();
 
+  const moving = direction.lengthSq() > 0;
   const speed = sneaking ? player.sneakSpeed : player.speed;
   camera.position.addScaledVector(direction, speed * dt);
 
@@ -187,13 +214,28 @@ function updatePlayer(dt) {
       grounded = true;
     }
   }
+
+  // Smooth sneak height instead of an instant camera jump.
+  const targetEye = sneaking ? player.sneakEye : player.normalEye;
+  currentEye = THREE.MathUtils.damp(currentEye, targetEye, 14, dt);
+  const baseEyeY = highest > -Infinity ? highest + 0.5 : 0.5;
+
+  // Simple Minecraft-like walking animation: subtle head bob while moving.
+  if (moving && grounded) bobTime += dt * (sneaking ? 7 : 10);
+  else bobTime = THREE.MathUtils.damp(bobTime, 0, 10, dt);
+  const bob = moving && grounded ? Math.sin(bobTime) * (sneaking ? 0.025 : 0.045) : 0;
+  const desiredY = baseEyeY + currentEye + bob;
+
+  if (grounded) camera.position.y = desiredY;
 }
 
 function animate() {
   requestAnimationFrame(animate);
   const dt = Math.min(clock.getDelta(), 0.05);
-  updatePlayer(dt);
-  updateTarget();
+  if (!paused) {
+    updatePlayer(dt);
+    updateTarget();
+  }
   renderer.render(scene, camera);
 }
 animate();
