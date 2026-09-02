@@ -13,8 +13,9 @@ export function executeCommand(input, context = {}) {
   if (command === 'tp') return parts.length >= 3 ? `Teleport: ${parts.slice(0, 3).join(' ')}` : 'Usage: /tp <x> <y> <z>';
   if (command === 'setblock') {
     if (parts.length < 4) return 'Usage: /setblock <x> <y> <z> <block>';
-    const [xText, yText, zText, type] = parts;
+    const [xText, yText, zText, rawType] = parts;
     const x = Number(xText), y = Number(yText), z = Number(zText);
+    const type = rawType.toLowerCase();
     if (![x, y, z].every(Number.isInteger)) return 'Usage: /setblock <x> <y> <z> <block>';
     if (typeof context.hasBlockType === 'function' && !context.hasBlockType(type)) return `Unknown block: ${type}`;
     if (typeof context.setBlock === 'function') context.setBlock(x, y, z, type);
