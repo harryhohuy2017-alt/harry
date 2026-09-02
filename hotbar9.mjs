@@ -6,6 +6,11 @@ export const INVENTORY_COLUMNS = 9;
 export const INVENTORY_ROWS = 2;
 export const INVENTORY_SLOT_COUNT = 11;
 
+export const BEDROCK_PANEL_BACKGROUND = '#313131';
+export const BEDROCK_SLOT_BACKGROUND = '#1f1f1f';
+export const BEDROCK_PANEL_BORDER = '#777';
+export const BEDROCK_SELECTED_BORDER = '#fff';
+
 export function normalizeHotbarIndex(number) {
   return Math.max(0, Math.min(HOTBAR_SIZE - 1, Math.floor(number) - 1));
 }
