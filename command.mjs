@@ -1,4 +1,4 @@
-export function executeCommand(input) {
+export function executeCommand(input, context = {}) {
   const text = String(input ?? '').trim();
   if (!text.startsWith('/')) return text;
   const parts = text.slice(1).split(/\s+/).filter(Boolean);
@@ -11,6 +11,14 @@ export function executeCommand(input) {
   }
   if (command === 'give') return parts[0] ? `Gave: ${parts[0]}` : 'Usage: /give <item>';
   if (command === 'tp') return parts.length >= 3 ? `Teleport: ${parts.slice(0, 3).join(' ')}` : 'Usage: /tp <x> <y> <z>';
-  if (command === 'setblock') return parts.length >= 4 ? `Setblock: ${parts[3]} at ${parts.slice(0, 3).join(' ')}` : 'Usage: /setblock <x> <y> <z> <block>';
+  if (command === 'setblock') {
+    if (parts.length < 4) return 'Usage: /setblock <x> <y> <z> <block>';
+    const [xText, yText, zText, type] = parts;
+    const x = Number(xText), y = Number(yText), z = Number(zText);
+    if (![x, y, z].every(Number.isInteger)) return 'Usage: /setblock <x> <y> <z> <block>';
+    if (typeof context.hasBlockType === 'function' && !context.hasBlockType(type)) return `Unknown block: ${type}`;
+    if (typeof context.setBlock === 'function') context.setBlock(x, y, z, type);
+    return `Setblock: ${type} at ${x} ${y} ${z}`;
+  }
   return `Unknown command: /${command}`;
 }
