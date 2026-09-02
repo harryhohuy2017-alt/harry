@@ -1,13 +1,11 @@
-export const CHAT_COMMANDS = ['/help', '/time', '/gamemode'];
+import { executeCommand } from './command.mjs';
+
+export const CHAT_COMMANDS = ['/help', '/time', '/gamemode', '/give', '/tp', '/setblock'];
 
 export function handleChatCommand(input) {
   const text = String(input ?? '').trim();
   if (!text) return '';
-  const command = text.split(/\s+/)[0].toLowerCase();
-  if (command === '/help') return 'Commands: /help, /time, /gamemode';
-  if (command === '/time') return `Time: ${new Date().toLocaleTimeString()}`;
-  if (command === '/gamemode') return 'Gamemode: survival';
-  return text;
+  return text.startsWith('/') ? executeCommand(text) : text;
 }
 
 export function shouldKeepKeyInChatInput(code) {
@@ -37,12 +35,7 @@ function initChat() {
     event.preventDefault();
     const text=input.value.trim();
     if(!text)return;
-    const result=handleChatCommand(text);
-    if (text.startsWith('/')) {
-      if (result) addMessage(result);
-    } else {
-      addMessage(text);
-    }
+    addMessage(handleChatCommand(text));
     input.value='';
   });
   input.addEventListener('keydown', event => {
