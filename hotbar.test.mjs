@@ -10,6 +10,10 @@ import {
   INVENTORY_COLUMNS,
   INVENTORY_ROWS,
   INVENTORY_SLOT_COUNT,
+  BEDROCK_PANEL_BACKGROUND,
+  BEDROCK_SLOT_BACKGROUND,
+  BEDROCK_PANEL_BORDER,
+  BEDROCK_SELECTED_BORDER,
   buildHotbarStyle,
   buildInventoryStyle,
 } from './hotbar9.mjs';
@@ -33,6 +37,10 @@ test('Bedrock-style inventory and hotbar are visually continuous', () => {
   assert.equal(style.borderRadius, '0');
   assert.equal(style.display, 'grid');
   assert.equal(style.gridTemplateColumns, 'repeat(9, 50px)');
+  assert.equal(BEDROCK_PANEL_BACKGROUND, '#313131');
+  assert.equal(BEDROCK_SLOT_BACKGROUND, '#1f1f1f');
+  assert.equal(BEDROCK_PANEL_BORDER, '#777');
+  assert.equal(BEDROCK_SELECTED_BORDER, '#fff');
 });
 
 test('inventory has exactly the 11 item slots used by the game', () => {
