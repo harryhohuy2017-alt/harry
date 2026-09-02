@@ -5,7 +5,7 @@ export const CHAT_COMMANDS = ['/help', '/time', '/gamemode', '/give', '/tp', '/s
 export function handleChatCommand(input) {
   const text = String(input ?? '').trim();
   if (!text) return '';
-  return text.startsWith('/') ? executeCommand(text) : text;
+  return text.startsWith('/') ? executeCommand(text, globalThis.gameCommandContext || {}) : text;
 }
 
 export function shouldKeepKeyInChatInput(code) {
