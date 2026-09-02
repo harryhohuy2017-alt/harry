@@ -1,4 +1,5 @@
 import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.180.0/build/three.module.js';
+import { normalizeHotbarIndex, slotLabel } from './hotbar.mjs';
 
 const canvas = document.querySelector('#game3d');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -13,7 +14,7 @@ camera.position.set(0, 2.7, 7);
 scene.add(new THREE.HemisphereLight(0xffffff, 0x6b7d52, 2.2));
 const sun = new THREE.DirectionalLight(0xffffff, 2.5); sun.position.set(15, 30, 10); sun.castShadow = true; scene.add(sun);
 const blocks={grass:{color:0x55a84f},dirt:{color:0x8b5a32},stone:{color:0x858585},sand:{color:0xd9c27a},wood:{color:0x8f633d},leaves:{color:0x2f7d32,transparent:true}};
-const selectedBlock='grass', geometries=new Map(), materials=new Map();
+const geometries=new Map(), materials=new Map();
 function materialFor(type){if(!materials.has(type))materials.set(type,new THREE.MeshLambertMaterial({color:blocks[type].color,transparent:!!blocks[type].transparent,opacity:blocks[type].transparent?.92:1}));return materials.get(type)}
 function geometryFor(){if(!geometries.has('cube'))geometries.set('cube',new THREE.BoxGeometry(1,1,1));return geometries.get('cube')}
 const world=new Map(), key=(x,y,z)=>`${x},${y},${z}`;
@@ -26,13 +27,25 @@ const raycaster=new THREE.Raycaster(),center=new THREE.Vector2(0,0);let target=n
 function updateTarget(){raycaster.setFromCamera(center,camera);const hits=raycaster.intersectObjects([...meshes.values()],false);target=hits[0]||null;if(target){outline.position.copy(target.object.position);outline.visible=true}else outline.visible=false}
 function faceNormalFromHit(hit){if(!hit.face)return new THREE.Vector3(0,1,0);return hit.face.normal.clone().transformDirection(hit.object.matrixWorld).normalize()}
 let actionAnim=null;
-function startAction(type, object, position){actionAnim={type,object,start:performance.now(),duration:type==='break'?220:150,position:position.clone()};}
+function startAction(type,object,position){actionAnim={type,object,start:performance.now(),duration:type==='break'?220:150,position:position.clone()}}
 function updateAction(now){if(!actionAnim)return;const p=Math.min(1,(now-actionAnim.start)/actionAnim.duration);if(actionAnim.type==='break'){const s=1-Math.sin(p*Math.PI)*.10;actionAnim.object.scale.set(s,s,s);actionAnim.object.rotation.z=Math.sin(p*Math.PI*6)*.025;if(p>=1){const q=actionAnim.position;removeBlock(Math.round(q.x),Math.round(q.y),Math.round(q.z));rebuildWorld();updateTarget();actionAnim=null}}else{const s=.15+.85*(1-Math.pow(1-p,3));actionAnim.object.scale.set(s,s,s);if(p>=1){actionAnim.object.scale.set(1,1,1);actionAnim=null}}}
 function breakTarget(){if(!target||actionAnim)return;const p=target.object.position;if(p.y<=-1)return;startAction('break',target.object,p)}
+let selectedBlock='grass';
+const hotbarItems=['grass','dirt','stone','sand','wood','leaves','grass','dirt','stone','sand','wood','leaves',null,null,null,null,null,null,null,null];
+let hotbarOpen=true,numberBuffer='',numberBufferTimer=null;
+const hotbar=document.createElement('div');
+hotbar.id='hotbar';
+hotbar.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);display:flex;gap:4px;padding:6px 7px;background:#111b;border:2px solid #555;border-radius:6px;box-shadow:0 4px 18px #0008;z-index:20;user-select:none;pointer-events:auto;font-family:Arial,sans-serif;max-width:calc(100vw - 20px);overflow-x:auto;box-sizing:border-box;scrollbar-width:none';
+for(let i=0;i<20;i++){const slot=document.createElement('button');slot.type='button';slot.dataset.index=String(i);slot.style.cssText='position:relative;flex:0 0 50px;width:50px;height:50px;padding:0;border:2px solid #777;border-radius:3px;background:#222d;cursor:pointer;box-sizing:border-box;color:#fff';const icon=document.createElement('span');icon.style.cssText='display:block;width:27px;height:27px;margin:8px auto 0;border:1px solid #111';const type=hotbarItems[i];if(type)icon.style.background=`#${blocks[type].color.toString(16).padStart(6,'0')}`;else icon.style.background='#333';const label=document.createElement('span');label.textContent=slotLabel(i);label.style.cssText='position:absolute;left:3px;top:2px;font:700 11px Arial,sans-serif;text-shadow:1px 1px 2px #000';slot.append(icon,label);slot.addEventListener('click',()=>selectHotbarSlot(i));hotbar.appendChild(slot)}
+document.body.appendChild(hotbar);
+function selectHotbarSlot(index){const i=normalizeHotbarIndex(index+1);selectedBlock=hotbarItems[i]||selectedBlock;for(const slot of hotbar.children){const active=Number(slot.dataset.index)===i;slot.style.border=active?'2px solid #fff':'2px solid #777';slot.style.boxShadow=active?'0 0 0 2px #000,0 0 10px #fff8':'none'}hotbar.scrollLeft=Math.max(0,(i-3)*54)}
+function toggleHotbar(){hotbarOpen=!hotbarOpen;hotbar.style.display=hotbarOpen?'flex':'none'}
+selectHotbarSlot(0);
 function placeBlock(){if(!target||actionAnim)return;const p=target.object.position,n=faceNormalFromHit(target);const x=Math.round(p.x+n.x),y=Math.round(p.y+n.y),z=Math.round(p.z+n.z);const box=new THREE.Box3(new THREE.Vector3(x-.5,y-.5,z-.5),new THREE.Vector3(x+.5,y+.5,z+.5));const playerBox=new THREE.Box3(new THREE.Vector3(camera.position.x-.3,camera.position.y-1.65,camera.position.z-.3),new THREE.Vector3(camera.position.x+.3,camera.position.y+.15,camera.position.z+.3));if(box.intersectsBox(playerBox)||world.has(key(x,y,z)))return;setBlock(x,y,z,selectedBlock);rebuildWorld();const m=meshes.get(key(x,y,z));if(m){m.scale.set(.15,.15,.15);startAction('place',m,m.position)}updateTarget()}
 canvas.addEventListener('mousedown',e=>{if(paused)return;if(e.button===0)breakTarget();if(e.button===2)placeBlock()});canvas.addEventListener('contextmenu',e=>e.preventDefault());
 const player={speed:4.5,sneakSpeed:2.2,normalEye:1.7,sneakEye:1.35,jumpSpeed:7.2,gravity:20};const keys=new Set();let verticalVelocity=0,grounded=false,jumpWasDown=false,paused=false,currentEye=player.normalEye,bobTime=0;
-addEventListener('keydown',e=>{keys.add(e.code);if(e.code==='KeyP'&&!e.repeat)togglePause()});addEventListener('keyup',e=>keys.delete(e.code));
+addEventListener('keydown',e=>{if(e.code==='KeyE'&&!e.repeat){e.preventDefault();toggleHotbar();return}if(/^Digit[0-9]$/.test(e.code)){const digit=e.code.slice(-1);numberBuffer+=digit;clearTimeout(numberBufferTimer);numberBufferTimer=setTimeout(()=>numberBuffer='',650);const n=Number(numberBuffer);if(n>=1&&n<=20){selectHotbarSlot(n-1);numberBuffer='';}else if(n>20){numberBuffer=digit;selectHotbarSlot(Number(digit)%10===0?9:Number(digit)-1)}}keys.add(e.code);if(e.code==='KeyP'&&!e.repeat)togglePause()});
+addEventListener('keyup',e=>keys.delete(e.code));
 const pauseOverlay=document.createElement('div');pauseOverlay.textContent='TẠM DỪNG — Nhấn P để tiếp tục';pauseOverlay.style.cssText='position:fixed;left:50%;top:18%;transform:translateX(-50%);padding:10px 16px;border-radius:8px;background:#000a;color:#fff;font:700 18px Arial,sans-serif;display:none;pointer-events:none;z-index:10';document.body.appendChild(pauseOverlay);
 function togglePause(){paused=!paused;pauseOverlay.style.display=paused?'block':'none';if(!paused){jumpWasDown=keys.has('Space');clock.getDelta()}}
 let yaw=0,pitch=0;canvas.addEventListener('click',()=>{if(!paused)canvas.requestPointerLock?.()});document.addEventListener('mousemove',e=>{if(paused||document.pointerLockElement!==canvas)return;yaw-=e.movementX*.0022;pitch-=e.movementY*.0022;pitch=Math.max(-Math.PI/2+.05,Math.min(Math.PI/2-.05,pitch))});
