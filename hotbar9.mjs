@@ -3,8 +3,8 @@ export const HOTBAR_GAP = 0;
 export const HOTBAR_SLOT_SIZE = 50;
 export const INVENTORY_HOTBAR_GAP = 0;
 export const INVENTORY_COLUMNS = 9;
-export const INVENTORY_ROWS = 3;
-export const INVENTORY_SLOT_COUNT = INVENTORY_COLUMNS * INVENTORY_ROWS;
+export const INVENTORY_ROWS = 2;
+export const INVENTORY_SLOT_COUNT = 11;
 
 export function normalizeHotbarIndex(number) {
   return Math.max(0, Math.min(HOTBAR_SIZE - 1, Math.floor(number) - 1));
