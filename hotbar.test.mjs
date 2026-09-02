@@ -14,8 +14,12 @@ import {
   BEDROCK_SLOT_BACKGROUND,
   BEDROCK_PANEL_BORDER,
   BEDROCK_SELECTED_BORDER,
+  BEDROCK_SLOT_BORDER,
+  BEDROCK_SLOT_LIGHT_BORDER,
+  BEDROCK_SLOT_INNER_BORDER,
   buildHotbarStyle,
   buildInventoryStyle,
+  buildBedrockSlotStyle,
 } from './hotbar9.mjs';
 
 test('hotbar exposes exactly 9 numbered slots', () => {
@@ -52,4 +56,26 @@ test('inventory has exactly the 11 item slots used by the game', () => {
   assert.equal(style.gridTemplateColumns, 'repeat(9, 50px)');
   assert.equal(style.gridTemplateRows, 'repeat(2, 50px)');
   assert.equal(style.gap, '0');
+});
+
+test('Bedrock slots use layered borders and a crisp selected state', () => {
+  assert.equal(BEDROCK_SLOT_BORDER, '#555');
+  assert.equal(BEDROCK_SLOT_LIGHT_BORDER, '#999');
+  assert.equal(BEDROCK_SLOT_INNER_BORDER, '#111');
+  assert.deepEqual(buildBedrockSlotStyle(false), {
+    border: '2px solid #555',
+    borderTopColor: '#999',
+    borderLeftColor: '#999',
+    borderRadius: '0',
+    background: '#1f1f1f',
+    boxShadow: 'inset 0 0 0 1px #111',
+  });
+  assert.deepEqual(buildBedrockSlotStyle(true), {
+    border: '2px solid #fff',
+    borderTopColor: '#fff',
+    borderLeftColor: '#fff',
+    borderRadius: '0',
+    background: '#1f1f1f',
+    boxShadow: 'inset 0 0 0 1px #fff, 0 0 0 2px #111',
+  });
 });
